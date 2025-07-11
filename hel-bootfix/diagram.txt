@@ -1,0 +1,17 @@
+hel-bootfix/
+📁 hel-bootfix/
+├── 📄 README.md
+├── 📁 assets
+│   └── 📄 icon.png
+├── 📄 diagram.txt
+├── 📄 hel-bootfix.desktop
+├── 📄 helbootfix.py
+├── 📁 logic
+│   ├── 📄 chroot.py
+│   ├── 📄 fixer.py
+│   ├── 📄 recovery.py
+│   ├── 📄 scanner.py
+│   └── 📄 sysinfo.py
+└── 📁 tabs
+    ├── 📄 __init__.py
+    └── 📄 about.py

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Helwan BootFix
+Comment=Boot repair and diagnostics tool for Helwan Linux
+Exec=hel-bootfix
+Icon=hel-bootfix
+Terminal=false
+Type=Application
+Categories=System;Utility;
+StartupNotify=true
+
