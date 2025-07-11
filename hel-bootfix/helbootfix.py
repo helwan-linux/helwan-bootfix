@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 import sys
+import os
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QTabWidget,
     QTextEdit, QPushButton, QFileDialog, QMessageBox, QHBoxLayout
@@ -9,65 +9,62 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtGui import QFont, QIcon
 from PyQt5.QtCore import QThread, pyqtSignal
 
-# --- منطق البرنامج (تُستورد من ملفاتك) ---
-from logic.scanner import BootScanner
-from logic.fixer   import BootFixer
-from logic.chroot  import ChrootHelper
-from logic.recovery import RecoveryManager
-from logic.sysinfo  import SystemInfoFetcher
-from tabs.about     import show_about_dialog
-# ------------------------------------------
+# ================== دعم التشغيل من التثبيت أو من المصدر ==================
+if os.path.exists("/usr/share/helwan-bootfix"):
+    BASE_DIR = "/usr/share/helwan-bootfix"
+else:
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# =========================================================
-#                    خيط عمل عام لعدم تجميد الواجهة
-# =========================================================
+sys.path.insert(0, BASE_DIR)
+# ==========================================================================
+
+from logic.scanner import BootScanner
+from logic.fixer import BootFixer
+from logic.chroot import ChrootHelper
+from logic.recovery import RecoveryManager
+from logic.sysinfo import SystemInfoFetcher
+from tabs.about import show_about_dialog
+
+
 class WorkerThread(QThread):
     finished = pyqtSignal(str)
 
     def __init__(self, func, *args, **kwargs):
         super().__init__()
-        self.func   = func
-        self.args   = args
+        self.func = func
+        self.args = args
         self.kwargs = kwargs
 
     def run(self):
         result = self.func(*self.args, **self.kwargs)
         self.finished.emit(result)
 
-# =========================================================
-#                   الواجهة الرئيسية للتطبيق
-# =========================================================
+
 class MainWindow(QMainWindow):
     COLOR_MAP = {"✔": "#2ecc71", "✖": "#e74c3c", "⚠": "#f1c40f"}
 
-    # ----------------- المُنشِئ -----------------
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Helwan BootFix")
-        #self.setWindowIcon(QIcon.fromTheme("system-repair"))
-        self.setWindowIcon(QIcon("assets/icon.png"))
-
+        icon_path = os.path.join(BASE_DIR, "assets", "icon.png")
+        self.setWindowIcon(QIcon(icon_path))
         self.resize(900, 650)
 
         self.threads = []
-        self.tabs    = QTabWidget()
+        self.tabs = QTabWidget()
         self.setCentralWidget(self.tabs)
-
-        # شريط الحالة أسفل النافذة
         self.status = self.statusBar()
         self.set_status("Ready.")
 
         self.init_tabs()
         self.init_menu_bar()
 
-    # ----------------- شريط القوائم ---------------
     def init_menu_bar(self):
-        menubar     = self.menuBar()
-        help_menu   = menubar.addMenu("Help")
-        about_act   = help_menu.addAction("About")
-        about_act.triggered.connect(lambda: show_about_dialog(self))
+        menubar = self.menuBar()
+        help_menu = menubar.addMenu("Help")
+        about_action = help_menu.addAction("About")
+        about_action.triggered.connect(lambda: show_about_dialog(self))
 
-    # --------------- إنشاء كل التبويبات ----------
     def init_tabs(self):
         self.init_scan_tab()
         self.init_fix_tab()
@@ -76,28 +73,22 @@ class MainWindow(QMainWindow):
         self.init_sysinfo_tab()
         self.init_log_tab()
 
-    # --------------- تبويب الفحص -----------------
     def init_scan_tab(self):
-        tab, layout = QWidget(), QVBoxLayout()
-        tab.setLayout(layout)
-
+        tab = QWidget()
+        layout = QVBoxLayout(tab)
         self.scan_output = QTextEdit(readOnly=True)
         btn = QPushButton("Run System Scan")
         btn.clicked.connect(self.run_scan)
-
         layout.addWidget(btn)
         layout.addWidget(self.scan_output)
         self.tabs.addTab(tab, "System Scan")
 
-    # --------------- تبويب الإصلاح ---------------
     def init_fix_tab(self):
-        tab, layout = QWidget(), QVBoxLayout()
-        tab.setLayout(layout)
-
+        tab = QWidget()
+        layout = QVBoxLayout(tab)
         self.fix_output = QTextEdit(readOnly=True)
         btn = QPushButton("Attempt Auto Fix (Root)")
         btn.clicked.connect(self.run_fix)
-
         layout.addWidget(btn)
         layout.addWidget(self.fix_output)
 
@@ -113,66 +104,50 @@ class MainWindow(QMainWindow):
         layout.addLayout(bar)
         self.tabs.addTab(tab, "Fix Boot")
 
-    # --------------- تبويب الـ Chroot ------------
     def init_chroot_tab(self):
-        tab, layout = QWidget(), QVBoxLayout()
-        tab.setLayout(layout)
-
+        tab = QWidget()
+        layout = QVBoxLayout(tab)
         self.chroot_output = QTextEdit(readOnly=True)
         btn = QPushButton("Choose Root Partition…")
         btn.clicked.connect(self.choose_partition)
-
         layout.addWidget(btn)
         layout.addWidget(self.chroot_output)
         self.tabs.addTab(tab, "Chroot Helper")
 
-    # --------------- تبويب الاستعادة ------------
     def init_recovery_tab(self):
-        tab, layout = QWidget(), QVBoxLayout()
-        tab.setLayout(layout)
-
+        tab = QWidget()
+        layout = QVBoxLayout(tab)
         self.recovery_output = QTextEdit(readOnly=True)
         btn = QPushButton("Start Recovery Mode (Root)")
         btn.clicked.connect(self.run_recovery)
-
         layout.addWidget(btn)
         layout.addWidget(self.recovery_output)
         self.tabs.addTab(tab, "Recovery Mode")
 
-    # --------------- تبويب معلومات النظام -------
     def init_sysinfo_tab(self):
-        tab, layout = QWidget(), QVBoxLayout()
-        tab.setLayout(layout)
-
+        tab = QWidget()
+        layout = QVBoxLayout(tab)
         self.sysinfo_output = QTextEdit(readOnly=True)
         btn = QPushButton("Fetch System Info")
         btn.clicked.connect(self.run_sysinfo)
-
         layout.addWidget(btn)
         layout.addWidget(self.sysinfo_output)
         self.tabs.addTab(tab, "System Info")
 
-    # --------------- تبويب السجلات ---------------
     def init_log_tab(self):
-        tab, layout = QWidget(), QVBoxLayout()
-        tab.setLayout(layout)
-
+        tab = QWidget()
+        layout = QVBoxLayout(tab)
         self.log_output = QTextEdit(readOnly=True)
         layout.addWidget(self.log_output)
         self.tabs.addTab(tab, "Logs")
 
-    # =================================================
-    #             أدوات مساعدة داخلية
-    # =================================================
+    def set_status(self, msg: str):
+        self.status.showMessage(msg, 5000)
+
     def log_message(self, message: str):
         self.log_output.append(f"[LOG] {message}")
 
-    def set_status(self, msg: str):
-        """عرض رسالة في شريط الحالة لـ 5 ثوانٍ"""
-        self.status.showMessage(msg, 5000)
-
     def colorize(self, text: str) -> str:
-        """إبراز ✔ ✖ ⚠ بألوان HTML"""
         html = []
         for line in text.splitlines():
             prefix = line[:1]
@@ -184,7 +159,6 @@ class MainWindow(QMainWindow):
         return '<pre style="font-family: monospace;">' + "<br>".join(html) + "</pre>"
 
     def analyze_fix_output(self, out: str) -> str:
-        """تلخيص سريع بعد الإصلاح"""
         summary = []
         if "Initcpio image generation successful" in out:
             summary.append("✔ Initramfs rebuilt")
@@ -196,9 +170,6 @@ class MainWindow(QMainWindow):
             out += "\n\n--- Summary ---\n" + "\n".join(summary)
         return out
 
-    # =================================================
-    #                 دوال التبويبات
-    # =================================================
     def run_scan(self):
         self.scan_output.setHtml("<i>Scanning…</i>")
         self.set_status("Running system scan...")
@@ -212,9 +183,7 @@ class MainWindow(QMainWindow):
         th.start()
 
     def run_fix(self):
-        if QMessageBox.question(self, "Confirm",
-                                "Run fix as root?",
-                                QMessageBox.Yes | QMessageBox.No) == QMessageBox.No:
+        if QMessageBox.question(self, "Confirm", "Run fix as root?", QMessageBox.Yes | QMessageBox.No) == QMessageBox.No:
             return
         self.fix_output.setHtml("<i>Running fix…</i>")
         self.set_status("Running boot fix...")
@@ -228,10 +197,7 @@ class MainWindow(QMainWindow):
         th.start()
 
     def choose_partition(self):
-        path, _ = QFileDialog.getOpenFileName(self,
-                                              "Select Partition Device",
-                                              "/dev",
-                                              "Block Device (*)")
+        path, _ = QFileDialog.getOpenFileName(self, "Select Partition Device", "/dev", "Block Device (*)")
         if path:
             script = ChrootHelper.chroot_script(path)
             self.chroot_output.setPlainText(script)
@@ -262,25 +228,21 @@ class MainWindow(QMainWindow):
         self.set_status("Report copied to clipboard.")
 
     def save_report(self):
-        path, _ = QFileDialog.getSaveFileName(self,
-                                              "Save Report",
-                                              "bootfix-report.txt",
-                                              "Text Files (*.txt)")
+        path, _ = QFileDialog.getSaveFileName(self, "Save Report", "bootfix-report.txt", "Text Files (*.txt)")
         if path:
             with open(path, "w") as f:
                 f.write(self.fix_output.toPlainText())
             self.log_message(f"Report saved to {path}")
             self.set_status(f"Report saved to {path}")
 
-# =========================================================
-#                      نقطة التشغيل
-# =========================================================
+
 def main():
     app = QApplication(sys.argv)
     app.setFont(QFont("Noto Sans", 10))
     win = MainWindow()
     win.show()
     sys.exit(app.exec_())
+
 
 if __name__ == "__main__":
     main()
