@@ -2,7 +2,7 @@
 Name=Helwan BootFix
 Comment=Boot repair and diagnostics tool for Helwan Linux
 Exec=hel-bootfix
-Icon=hel-bootfix
+Icon=/usr/share/pixmaps/hel-bootfix.png
 Terminal=false
 Type=Application
 Categories=System;Utility;
