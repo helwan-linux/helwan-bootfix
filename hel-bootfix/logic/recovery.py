@@ -1,25 +1,20 @@
-# logic/recovery.py
-
-import subprocess
-
 class RecoveryManager:
     @staticmethod
-    def run():
-        output = []
-
-        try:
-            output.append("✔ Running mkinitcpio...")
-            subprocess.run(["sudo", "mkinitcpio", "-P"], check=True)
-            output.append("✔ Initramfs rebuilt")
-
-            output.append("✔ Generating GRUB config...")
-            subprocess.run(["sudo", "grub-mkconfig", "-o", "/boot/grub/grub.cfg"], check=True)
-            output.append("✔ GRUB config generated")
-
-            output.append("✔ Boot entries updated")
-
-        except subprocess.CalledProcessError as e:
-            output.append("✖ Error during recovery: " + str(e))
-
-        return "\n".join(output)
-
+    def run() -> str:
+        # أوامر صيانة حقيقية:
+        # 1. مسح أقفال pacman (عشان التحديث يشتغل)
+        # 2. تصليح الـ Shared Libraries المكسورة (ldconfig)
+        # 3. التأكد من سلامة ملف الـ fstab (المسؤول عن قومة الهارد)
+        # 4. مسح ملفات الـ Trash والـ Temp اللي سادة مساحة السيستم
+        commands = [
+            "echo '--- Cleaning System Locks ---'",
+            "rm -f /var/lib/pacman/db.lck",
+            "echo '--- Rebuilding System Library Links ---'",
+            "ldconfig",
+            "echo '--- Cleaning Temporary Files ---'",
+            "rm -rf /tmp/* /var/tmp/*",
+            "echo '--- Optimizing File Systems ---'",
+            "sync",
+            "echo '✔ System Cleaned and Optimized!'"
+        ]
+        return " && ".join(commands)

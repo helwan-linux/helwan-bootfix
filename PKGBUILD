@@ -1,7 +1,7 @@
 # Maintainer: Saeed Badrelden <saeedbadrelden2021@gmail.com>
-pkgname=helwan-bootfix
+pkgname=hel-bootfix
 pkgver=1.0.0
-pkgrel=1
+pkgrel=2
 pkgdesc="Simple Boot Repair Utility for Helwan Linux"
 arch=('any')
 url="https://github.com/helwan-linux/helwan-bootfix"
